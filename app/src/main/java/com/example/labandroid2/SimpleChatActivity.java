@@ -11,6 +11,14 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ListView;
 
+import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
+import org.eclipse.paho.client.mqttv3.MqttCallback;
+import org.eclipse.paho.client.mqttv3.MqttClient;
+import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
+import org.eclipse.paho.client.mqttv3.MqttException;
+import org.eclipse.paho.client.mqttv3.MqttMessage;
+import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
+
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 
@@ -31,6 +39,7 @@ public class SimpleChatActivity extends AppCompatActivity {
             activity.chatListView.setSelection(activity.listItems.size() - 1);
         }
     }
+
     Handler myHandler = new MyHandler(this);
 
 
@@ -65,15 +74,71 @@ public class SimpleChatActivity extends AppCompatActivity {
         sendButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                    Message msg = myHandler.obtainMessage();
-                    Bundle b = new Bundle();
-                    b.putString("NICK", "JA");
-                    b.putString("MSG", messageInput.getText().toString());
-                    msg.setData(b);
-                    myHandler.sendMessage(msg);
-
                 // TODO send mqqt message here
             }
         });
+
+        //uruchamiamy MQTT w tle
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                startMQTT(nick, ip);
+            }
+        }).start();
+    }
+
+    MqttClient sampleClient = null;
+
+    private void startMQTT(final String nick, String ip) {
+
+        String clientId;
+        MemoryPersistence persistence = new MemoryPersistence();
+        try {
+            String broker = "tcp://" + ip + ":1883";
+            clientId = nick;
+            sampleClient = new MqttClient(broker, clientId, persistence);
+            sampleClient.setCallback(new MqttCallback() {
+                @Override
+                public void connectionLost(Throwable throwable) {
+
+                }
+
+                @Override
+                public void messageArrived(String s, MqttMessage mqttMessage) throws Exception {
+                    Message msg = myHandler.obtainMessage();
+                    Bundle b = new Bundle();
+                    b.putString("NICK", nick);
+                    b.putString("MSG", mqttMessage.toString());
+                    msg.setData(b);
+                    myHandler.sendMessage(msg);
+                }
+
+                @Override
+                public void deliveryComplete(IMqttDeliveryToken iMqttDeliveryToken) {
+
+                }
+            });
+            MqttConnectOptions connOpts = new MqttConnectOptions();
+            connOpts.setCleanSession(true);
+            System.out.println("Connecting to broker: " + broker);
+            sampleClient.connect(connOpts);
+            System.out.println("Connected");
+            sampleClient.subscribe("#");
+        } catch (MqttException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (sampleClient != null) {
+            try {
+                sampleClient.disconnect();
+            } catch (MqttException e) {
+                e.printStackTrace();
+            }
+        }
     }
 }
