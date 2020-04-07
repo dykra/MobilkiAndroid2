@@ -30,10 +30,10 @@ public class MainActivity extends AppCompatActivity {
         startButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-//                Intent intent = new Intent(MainActivity.this, SimpleChatActivity.class);
-//                intent.putExtra(IP, iPAddressInput.getText().toString());
-//                intent.putExtra(NICK, nickNameInput.getText().toString());
-//                startActivity(intent);
+                Intent intent = new Intent(MainActivity.this, SimpleChatActivity.class);
+                intent.putExtra(IP, iPAddressInput.getText().toString());
+                intent.putExtra(NICK, nickNameInput.getText().toString());
+                startActivity(intent);
             }
         });
 
