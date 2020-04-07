@@ -74,11 +74,18 @@ public class SimpleChatActivity extends AppCompatActivity {
         sendButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                // TODO send mqqt message here
+                MqttMessage message = new MqttMessage(messageInput.getText().toString().getBytes());
+                message.setQos(2);
+                try {
+                    //http://test.mosquitto.org/ -> strange topic name
+                    sampleClient.publish("/asia/chat/dziwny/" + nick, message);
+                } catch (MqttException e) {
+                    e.printStackTrace();
+                }
             }
         });
 
-        //uruchamiamy MQTT w tle
+//        uruchamiamy MQTT w tle
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -90,7 +97,6 @@ public class SimpleChatActivity extends AppCompatActivity {
     MqttClient sampleClient = null;
 
     private void startMQTT(final String nick, String ip) {
-
         String clientId;
         MemoryPersistence persistence = new MemoryPersistence();
         try {
@@ -105,9 +111,10 @@ public class SimpleChatActivity extends AppCompatActivity {
 
                 @Override
                 public void messageArrived(String s, MqttMessage mqttMessage) throws Exception {
+                    String[] splittedChannel = s.split("/");
                     Message msg = myHandler.obtainMessage();
                     Bundle b = new Bundle();
-                    b.putString("NICK", nick);
+                    b.putString("NICK", splittedChannel[splittedChannel.length - 1]);
                     b.putString("MSG", mqttMessage.toString());
                     msg.setData(b);
                     myHandler.sendMessage(msg);
@@ -123,7 +130,7 @@ public class SimpleChatActivity extends AppCompatActivity {
             System.out.println("Connecting to broker: " + broker);
             sampleClient.connect(connOpts);
             System.out.println("Connected");
-            sampleClient.subscribe("#");
+            sampleClient.subscribe("/asia/chat/dziwny/#");
         } catch (MqttException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
